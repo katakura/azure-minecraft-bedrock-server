@@ -1,0 +1,39 @@
+{
+  "ignition": {
+    "config": {},
+    "security": {
+      "tls": {}
+    },
+    "timeouts": {},
+    "version": "2.2.0"
+  },
+  "networkd": {},
+  "passwd": {},
+  "storage": {
+    "files": [
+      {
+        "filesystem": "root",
+        "overwrite": true,
+        "path": "/opt/bin/start-beserver.sh",
+        "contents": {
+          "source": "data:,%23!%2Fbin%2Fsh%0A%0A%23%20get%20storage%20account%20name%20from%20VM%20meta%20data%0Auserdata%3D%24(curl%20-s%20-H%20Metadata%3Atrue%20--noproxy%20%5C*%20'http%3A%2F%2F169.254.169.254%2Fmetadata%2Finstance%3Fapi-version%3D2021-02-01'%20%5C%0A%20%20%7C%20jq%20'.compute.userData'%20-j%20%5C%0A%20%20%7C%20base64%20--decode)%0A%0Astname%3D%24(echo%20%24%7Buserdata%7D%20%7C%20cut%20-d'%2C'%20-f%201)%0Acontainername%3D%24(echo%20%24%7Buserdata%7D%20%7C%20cut%20-d'%2C'%20-f%202)%0A%0A%23%20stop%20and%20remove%20docker%20resources%0Adocker%20stop%20beserver%0Adocker%20rm%20-f%20beserver%0Adocker%20volume%20rm%20-f%20nfs-volume%0A%0A%23%20create%20volume%0Adocker%20volume%20create%20--driver%20local%20%5C%0A%20%20--opt%20type%3Dnfs%20%5C%0A%20%20--opt%20o%3Daddr%3D%24%7Bstname%7D.privatelink.blob.core.windows.net%2Crw%2Csec%3Dsys%2Cvers%3D3%2Cnolock%2Cproto%3Dtcp%20%5C%0A%20%20--opt%20device%3D%3A%2F%24%7Bstname%7D%2F%24%7Bcontainername%7D%20%5C%0A%20%20nfs-volume%0Aif%20%5B%20'0'%20!%3D%20%24%3F%20%5D%3B%20then%0A%20%20echo%20%22volume%20create%20error%22%0A%20%20exit%201%0Afi%0A%0Asleep%2010%0A%0A%23%20run%20docker%20container%0Adocker%20run%20-d%20-it%20--name%20beserver%20%5C%0A%20%20--restart%20always%20%5C%0A%20%20-e%20%22VERSION%3DLATEST%22%20%5C%0A%20%20-e%20%22SERVER_PORT%3D19132%22%20%5C%0A%20%20-e%20%22EULA%3DTRUE%22%20%5C%0A%20%20-e%20%22CORRECT_PLAYER_MOVEMENT%3D%22%20%5C%0A%20%20-e%20%22PLAYER_MOVEMENT_DURATION_THRESHOLD_IN_MS%3D500%22%20%5C%0A%20%20-e%20%22PLAYER_MOVEMENT_DISTANCE_THRESHOLD%3D0.3%22%20%5C%0A%20%20-e%20%22PLAYER_MOVEMENT_SCORE_THRESHOLD%3D20%22%20%5C%0A%20%20-e%20%22SERVER_AUTHORITATIVE_MOVEMENT%3Dtrue%22%20%5C%0A%20%20-e%20%22TEXTUREPACK_REQUIRED%3Dfalse%22%20%5C%0A%20%20-e%20%22DEFAULT_PLAYER_PERMISSION_LEVEL%3Dmember%22%20%5C%0A%20%20-e%20%22LEVEL_SEED%3D%22%20%5C%0A%20%20-e%20%22LEVEL_NAME%3Ddefault%22%20%5C%0A%20%20-e%20%22MAX_THREADS%3D8%22%20%5C%0A%20%20-e%20%22PLAYER_IDLE_TIMEOUT%3D30%22%20%5C%0A%20%20-e%20%22TICK_DISTANCE%3D4%22%20%5C%0A%20%20-e%20%22VIEW_DISTANCE%3D32%22%20%5C%0A%20%20-e%20%22WHITE_LIST%3Dfalse%22%20%5C%0A%20%20-e%20%22ONLINE_MODE%3Dtrue%22%20%5C%0A%20%20-e%20%22MAX_PLAYERS%3D10%22%20%5C%0A%20%20-e%20%22ALLOW_CHEATS%3Dfalse%22%20%5C%0A%20%20-e%20%22LEVEL_TYPE%3Ddefault%22%20%5C%0A%20%20-e%20%22DIFFICULTY%3Dnormal%22%20%5C%0A%20%20-e%20%22GAMEMODE%3Dsurvival%22%20%5C%0A%20%20-e%20%22SERVER_NAME%3DMinecraft%20Bedrock%20Server%20for%20Azure%22%20%5C%0A%20%20-p%2019132%3A19132%2Fudp%20%5C%0A%20%20-v%20nfs-volume%3A%2Fdata%20%5C%0A%20%20itzg%2Fminecraft-bedrock-server%0A%0Aif%20%5B%20'0'%20!%3D%20%24%3F%20%5D%3B%20then%0A%20%20echo%20%22container%20create%20error%22%0A%20%20exit%202%0Afi%0A%0Aexit%200%0A",
+          "verification": {}
+        },
+        "mode": 493
+      }
+    ]
+  },
+  "systemd": {
+    "units": [
+      {
+        "enabled": true,
+        "name": "docker.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Minecraft BE Server Service\nRequires=docker.service\nAfter=docker.service\n\n[Service]\nType=oneshot\nExecStart=/opt/bin/start-beserver.sh\n\n[Install]\nWantedBy=multi-user.target\n",
+        "enabled": true,
+        "name": "beserver.service"
+      }
+    ]
+  }
+}

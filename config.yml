@@ -1,0 +1,92 @@
+storage:
+  files:
+    - path: /opt/bin/start-beserver.sh
+      filesystem: root
+      overwrite: true
+      mode: 0755
+      contents:
+        inline: |
+          #!/bin/sh
+
+          # get storage account name from VM meta data
+          userdata=$(curl -s -H Metadata:true --noproxy \* 'http://169.254.169.254/metadata/instance?api-version=2021-02-01' \
+            | jq '.compute.userData' -j \
+            | base64 --decode)
+
+          stname=$(echo ${userdata} | cut -d',' -f 1)
+          containername=$(echo ${userdata} | cut -d',' -f 2)
+
+          # stop and remove docker resources
+          docker stop beserver
+          docker rm -f beserver
+          docker volume rm -f nfs-volume
+
+          # create volume
+          docker volume create --driver local \
+            --opt type=nfs \
+            --opt o=addr=${stname}.privatelink.blob.core.windows.net,rw,sec=sys,vers=3,nolock,proto=tcp \
+            --opt device=:/${stname}/${containername} \
+            nfs-volume
+          if [ '0' != $? ]; then
+            echo "volume create error"
+            exit 1
+          fi
+
+          sleep 10
+
+          # run docker container
+          docker run -d -it --name beserver \
+            --restart always \
+            -e "VERSION=LATEST" \
+            -e "SERVER_PORT=19132" \
+            -e "EULA=TRUE" \
+            -e "CORRECT_PLAYER_MOVEMENT=" \
+            -e "PLAYER_MOVEMENT_DURATION_THRESHOLD_IN_MS=500" \
+            -e "PLAYER_MOVEMENT_DISTANCE_THRESHOLD=0.3" \
+            -e "PLAYER_MOVEMENT_SCORE_THRESHOLD=20" \
+            -e "SERVER_AUTHORITATIVE_MOVEMENT=true" \
+            -e "TEXTUREPACK_REQUIRED=false" \
+            -e "DEFAULT_PLAYER_PERMISSION_LEVEL=member" \
+            -e "LEVEL_SEED=" \
+            -e "LEVEL_NAME=default" \
+            -e "MAX_THREADS=8" \
+            -e "PLAYER_IDLE_TIMEOUT=30" \
+            -e "TICK_DISTANCE=4" \
+            -e "VIEW_DISTANCE=32" \
+            -e "WHITE_LIST=false" \
+            -e "ONLINE_MODE=true" \
+            -e "MAX_PLAYERS=10" \
+            -e "ALLOW_CHEATS=false" \
+            -e "LEVEL_TYPE=default" \
+            -e "DIFFICULTY=normal" \
+            -e "GAMEMODE=survival" \
+            -e "SERVER_NAME=Minecraft Bedrock Server for Azure" \
+            -p 19132:19132/udp \
+            -v nfs-volume:/data \
+            itzg/minecraft-bedrock-server
+
+          if [ '0' != $? ]; then
+            echo "container create error"
+            exit 2
+          fi
+
+          exit 0
+systemd:
+  units:
+    - name: docker.service
+      enabled: true
+
+    - name: beserver.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Minecraft BE Server Service
+        Requires=docker.service
+        After=docker.service
+
+        [Service]
+        Type=oneshot
+        ExecStart=/opt/bin/start-beserver.sh
+
+        [Install]
+        WantedBy=multi-user.target
