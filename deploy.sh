@@ -4,7 +4,7 @@
 ### PLEASE CHANGE THIS VARIABLES ###
 ####################################
 LOCATION='japaneast'
-RGNAME='minecraft-bedlock-server-rg'
+RGNAME='minecraft-bedlock-server-rg2'
 ADMINNAME='beadmin'
 ADMINPASS=''
 MYIP=''

@@ -32,14 +32,6 @@ az deployment group create -g test-beserver-rg -f ./deploy.bicep -p myIp=<your_c
 
 ## FAQ
 
-### The Minecraft container does not start in the VM immediately after deployment
-
-Since the orchestration is appropriate (docker commands are run from shell), it may not start right after VM deployment if the timing is bad.
-
-In that case, try restarting the VM once.
-
-I'd like to use Docker compose or something similar, but it's not implemented yet. (Issue, PR regards)
-
 ### How do I connect from the Minecraft app?
 
 Please specify the Public IP Address assigned to the VM in the application.
