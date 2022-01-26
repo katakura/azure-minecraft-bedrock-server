@@ -13,6 +13,10 @@ The Minecraft server uses the very popular itzg/minecraft-server container image
 
 For the persistent area, use Azure storage in the virtual network, connected via NFS(v3).
 
+## Azure infrastructure
+
+![image](documents/infrastructure.png)
+
 ## direct (and simple) deploy
 
 ```bash
