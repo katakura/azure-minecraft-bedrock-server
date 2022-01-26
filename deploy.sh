@@ -44,7 +44,7 @@ fi
 
 # exec container-linux-config-transpiler
 if [ -f ./config.yml ]; then
-    cat ./config.yml | ${CT} --platform=azure | jq >./config.json
+    cat ./config.yml | ${CT} --platform=azure | jq . >./config.json
 fi
 
 # deploy for azure
